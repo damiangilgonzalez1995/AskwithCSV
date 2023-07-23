@@ -3,7 +3,7 @@ from langchain.agents import create_pandas_dataframe_agent
 import pandas as pd
 from dotenv import load_dotenv 
 import json
-from prompt import *
+from prompt import  PROMPT, KEY_OPENAI
 
 import os
 
@@ -49,7 +49,7 @@ class Askcsv():
 
         except Exception as error:
    
-            return error
+            return  {"error": error, "response": response}
         
     def execute(self, query: str):
         agent = self.csv_tool()

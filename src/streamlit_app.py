@@ -1,11 +1,13 @@
 import streamlit as st
-from prompt import *
+from prompt import PROMPT, KEY_OPENAI
 import os
 from generative_ai import Askcsv
 # streamlit config show > project/.streamlit/config.toml
 import pandas as pd
 import sqlalchemy as sql
 from pandas.api.types import is_numeric_dtype
+import matplotlib.pyplot as plt
+
 
 
 
@@ -38,6 +40,8 @@ def write_answer(response_dict: dict):
         None.
     """
 
+    tab_query1, tab_query2 = st.tabs(["🧮 Result", "🗃 Query Data"])
+
     # Check if the response is an answer.
     if "answer" in response_dict:
         st.write(response_dict["answer"])
@@ -52,8 +56,16 @@ def write_answer(response_dict: dict):
                     for i, col in enumerate(data['columns'])
                 }       
             df = pd.DataFrame(df_data)
-            col_not_numeric = [col for col in df.columns if not is_numeric_dtype(df[col])][0]
-            st.bar_chart(df, x = col_not_numeric)
+
+            tab_query2.table(df)
+            col_not_numeric = [col for col in df.columns if not is_numeric_dtype(df[col])]
+
+            if col_not_numeric:
+                col_not_numeric = col_not_numeric[0]
+            else:
+                col_not_numeric = df.columns.tolist()[0]
+
+            tab_query1.bar_chart(df, x = col_not_numeric)
         except ValueError:
             print(f"Couldn't create DataFrame from data: {data}")
 
@@ -63,8 +75,15 @@ def write_answer(response_dict: dict):
         try:
             df_data = {col: [x[i] for x in data['data']] for i, col in enumerate(data['columns'])}
             df = pd.DataFrame(df_data)
-            col_not_numeric = [col for col in df.columns if not is_numeric_dtype(df[col])][0]
-            st.line_chart(df, x = col_not_numeric)
+            tab_query2.table(df)
+            col_not_numeric = [col for col in df.columns if not is_numeric_dtype(df[col])]
+
+            if col_not_numeric:
+                col_not_numeric = col_not_numeric[0]
+            else:
+                col_not_numeric = df.columns.tolist()[0]
+
+            tab_query1.line_chart(df, x = col_not_numeric)
         except ValueError:
             print(f"Couldn't create DataFrame from data: {data}")
 
@@ -72,8 +91,25 @@ def write_answer(response_dict: dict):
     # Check if the response is a table.
     if "table" in response_dict:
         data = response_dict["table"]
-        df = pd.DataFrame(data["data"], columns=data["columns"])  
-        st.table(df)
+        df = pd.DataFrame(data["data"], columns=data["columns"])
+        tab_query2.table(df)
+        tab_query1.table(df)
+
+
+    # Check if the response is a table.
+    if "hist" in response_dict:
+        data = response_dict["hist"]
+        df = pd.DataFrame(data["data"], columns=data["columns"]) 
+        col_not_numeric = [col for col in df.columns if not is_numeric_dtype(df[col])]
+
+        if col_not_numeric:
+            col_not_numeric = col_not_numeric[0]
+        else:
+            col_not_numeric = df.columns.tolist()[0]
+
+        tab_query1.bar_chart(data=df, x=col_not_numeric)
+        tab_query2.table(df)
+
     
 
 def main():
@@ -121,7 +157,11 @@ def main():
                 # Collect the message and store it in a variable
                 # output = class_askcsv.execute(query=user_input)
 
-                output = {"line": {"columns": ["Job Title", "Salary"], "data": [["Software Engineer", 90000.0], ["Data Analyst", 65000.0], ["Senior Manager", 150000.0], ["Sales Associate", 60000.0], ["Director", 200000.0]]}}
+                # output = {"line": {"columns": ["Job Title", "Salary"], "data": [["Software Engineer", 90000.0], ["Data Analyst", 65000.0], ["Senior Manager", 150000.0], ["Sales Associate", 60000.0], ["Director", 200000.0]]}}
+
+                # output = {"hist": {"columns": ["Gender", "Count"], "data": [["Male", 3674], ["Female", 3014], ["Other", 14]]}}
+
+                output = {"line": {"columns": ["Job Title", "Salary"], "data": [["Chief Technology Officer", 250000.0], ["CEO", 250000.0], ["Financial Manager", 250000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0], ["Data Scientist", 240000.0]]}}
                
                 st.session_state.past.append(user_input)
                 st.session_state.generated.append(output)
@@ -129,8 +169,14 @@ def main():
             if st.session_state["generated"]:
 
                 for i in range(len(st.session_state["generated"])-1, -1, -1):
-                    # st.write(st.session_state["generated"][i])
-                    write_answer(st.session_state["generated"][i])
+                    past_request = st.session_state["generated"][i]
+                    if "error" in past_request:
+                        error = past_request["error"]
+                        response = past_request["response"]
+                        st.write(f"There was a error: {error}")
+                        st.code(f"The answer was: {response}")
+                    else:
+                        write_answer(past_request)
 
 
 if __name__ == '__main__':

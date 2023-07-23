@@ -11,6 +11,9 @@ PROMPT = """
         3. If a line chart is more appropriate, your reply should look like this:
         {"line": {"columns": ["A", "B", "C", ...], "data": [25, 24, 10, ...]}}
 
+        4. If a histogram chart is more appropriate, your reply should look like this:
+        {"hist": {"columns": ["A", "B", "C", ...], "data": [25, 24, 10, ...]}}
+
         Note: We only accommodate two types of charts: "bar" and "line".
 
         4. For a plain question that doesn't need a chart or table, your response should be:
